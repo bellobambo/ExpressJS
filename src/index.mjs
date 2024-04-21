@@ -1,5 +1,7 @@
 import express, { request, response } from 'express';
-import { query, validationResult, body } from 'express-validator'
+import { query, validationResult, body, matchedData, checkSchema } from 'express-validator'
+import { createUserValidationSchema } from './utils/validationSchemas.mjs';
+
 
 const app = express();
 
@@ -27,12 +29,12 @@ const resolveIndexById = (request, response, next) => {
 const PORT = process.env.PORT || 3000;
 
 const mockUsers = [
-    { id: 1, username: 'Bee6ix', displayname: 'Bambo' },
-    { id: 2, username: 'Bellogg', displayname: 'Ayodeji' },
-    { id: 4, username: 'Bamford', displayname: 'Ayo' },
-    { id: 5, username: 'Mide', displayname: 'Tope' },
-    { id: 6, username: 'Nike', displayname: 'Williams' },
-    { id: 7, username: 'Olamide', displayname: 'tunmise' },
+    { id: 1, username: 'Bee6ix', displayName: 'Bambo' },
+    { id: 2, username: 'Bellogg', displayName: 'Ayodeji' },
+    { id: 4, username: 'Bamford', displayName: 'Ayo' },
+    { id: 5, username: 'Mide', displayName: 'Tope' },
+    { id: 6, username: 'Nike', displayName: 'Williams' },
+    { id: 7, username: 'Olamide', displayName: 'tunmise' },
 ]
 
 app.get('/',
@@ -44,7 +46,7 @@ app.get('/',
 
 
 
-app.get('/api/users', query("filter").isString().notEmpty().withMessage('Must Not Be Empty').isLength({min : 3, max : 10}).withMessage('Must Be At Least  3-10 characters'), (request, response) => {
+app.get('/api/users', query("filter").isString().notEmpty().withMessage('Must Not Be Empty').isLength({ min: 3, max: 10 }).withMessage('Must Be At Least  3-10 characters'), (request, response) => {
     const result = validationResult(request);
     console.log(result);
     const { query: { filter, value } } = request
@@ -61,14 +63,22 @@ app.use(loggingMiddleware, (request, response, next) => {
     next();
 });
 
-app.post('/api/users', (request, response) => {
-    console.log(request.body)
-    const { body } = request;
-    const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...body };
-    mockUsers.push(newUser);
-    return response.status(201).send(newUser)
+app.post('/api/users',checkSchema(createUserValidationSchema), (request, response) => {
+        const result = validationResult(request);
+        console.log(result);
+        if (!result.isEmpty()) {
+            return response.status(400).send({ errors: result.array() })
+        }
 
-})
+        const data = matchedData(request)
+        console.log(data);
+
+        const { body } = request;
+        const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...body };
+        mockUsers.push(newUser);
+        return response.status(201).send(newUser)
+
+    })
 
 app.get('/api/users/:id', resolveIndexById, (request, response) => {
     const { findUserIndex } = request;
