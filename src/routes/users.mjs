@@ -4,6 +4,7 @@ import { mockUsers } from '../utils/constants.mjs';
 import { createUserValidationSchema } from '../utils/validationSchemas.mjs';
 import { resolveIndexById } from '../utils/middlewares.mjs';
 import { User } from '../mongoose/schema/user.mjs';
+import { hashpassword } from '../utils/helper.mjs';
 
 const router = Router();
 
@@ -31,20 +32,25 @@ router.get('/api/users/:id', resolveIndexById, (request, response) => {
     return response.send(finduser);
 })
 
-router.post('/api/users', async (request, response) => {
-   
-        const {body} = request;
+router.post('/api/users', checkSchema(createUserValidationSchema),
+    async (request, response) => {
+        const result = validationResult(request);
 
-        const newUser = new User(body);
+        if (!result.isEmpty()) return response.send(result.array());
+
+        const data = matchedData(request);
+
         try {
+            data.password = await hashpassword(data.password);
+            const newUser = new User(data);
             const savedUser = await newUser.save();
-            return response.status(201).send(savedUser)
+            return response.status(201).send(savedUser);
         } catch (error) {
-            console.log(error)
-            return response.status(400).send({ msg: 'Bad Request' })
+            console.log(error);
+            return response.status(400).send({ msg: 'Bad Request' });
         }
+    });
 
-})
 
 router.put('/api/users/:id', resolveIndexById, (request, response) => {
     const { body, params: { id } } = request;
