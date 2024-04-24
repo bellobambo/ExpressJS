@@ -5,9 +5,14 @@ import session from 'express-session';
 import { mockUsers } from './utils/constants.mjs';
 import passport from 'passport'
 import './strategies/localStrategy.mjs'
+import mongoose from 'mongoose';
 
 
 const app = express();
+
+
+mongoose.connect('mongodb+srv://bellobambo21:Ayodeji2001@cluster0.pvwkgbs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+.then(()=> console.log('connected to db')).catch((err)=> console.log(err))
 
 
 app.use(express.json())
@@ -36,6 +41,25 @@ const loggingMiddleware = (request, response, next) => {
     next();
 }
 
+
+app.get('/api/auth/status' , (request, response) =>{
+    console.log(`Inside /auth/status endpoint`)
+    console.log(request.user)
+    console.log(request.session)
+
+
+    return request.user ? response.send(request.user) : response.sendStatus(401)
+})
+
+
+app.post('/api/auth/logout', (request, response) => {
+    if(!request.user) return response.sendStatus(401);
+
+    request.logout((err) =>{
+        if(err) return response.sendStatus(400);
+        response.send(200)
+    })
+})
 
 const PORT = process.env.PORT || 3000;
 
