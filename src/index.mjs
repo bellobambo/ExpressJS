@@ -4,16 +4,18 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { mockUsers } from './utils/constants.mjs';
 import passport from 'passport'
-import './strategies/localStrategy.mjs'
+// import './strategies/localStrategy.mjs'
 import MongoStore from 'connect-mongo';
 import mongoose from 'mongoose';
+
+import './strategies/discordStrategy.mjs'
 
 
 const app = express();
 
 
 mongoose.connect('mongodb+srv://bellobambo21:Ayodeji2001@cluster0.pvwkgbs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
-.then(()=> console.log('connected to db')).catch((err)=> console.log(err))
+    .then(() => console.log('connected to db')).catch((err) => console.log(err))
 
 
 app.use(express.json())
@@ -25,8 +27,8 @@ app.use(session({
     cookie: {
         maxAge: 60000 * 60,
     },
-    store : MongoStore.create({
-        client : mongoose.connection.getClient()
+    store: MongoStore.create({
+        client: mongoose.connection.getClient()
     }),
 }))
 
@@ -36,7 +38,7 @@ app.use(passport.session());
 
 app.use(routes);
 
-app.post('/api/auth' , passport.authenticate('local') , (request, response) => {
+app.post('/api/auth', passport.authenticate('local'), (request, response) => {
     response.sendStatus(200)
 })
 
@@ -46,7 +48,7 @@ const loggingMiddleware = (request, response, next) => {
 }
 
 
-app.get('/api/auth/status' , (request, response) =>{
+app.get('/api/auth/status', (request, response) => {
     console.log(`Inside /auth/status endpoint`)
     console.log(request.user)
     console.log(request.session)
@@ -57,10 +59,10 @@ app.get('/api/auth/status' , (request, response) =>{
 
 
 app.post('/api/auth/logout', (request, response) => {
-    if(!request.user) return response.sendStatus(401);
+    if (!request.user) return response.sendStatus(401);
 
-    request.logout((err) =>{
-        if(err) return response.sendStatus(400);
+    request.logout((err) => {
+        if (err) return response.sendStatus(400);
         response.send(200)
     })
 })
@@ -68,11 +70,12 @@ app.post('/api/auth/logout', (request, response) => {
 const PORT = process.env.PORT || 3000;
 
 
-
-app.use(loggingMiddleware, (request, response, next) => {
-    console.log('finished Logging');
-    next();
-});
+app.get('/api/auth/discord', passport.authenticate('discord'));
+app.get('/api/auth/discord/redirect',
+    passport.authenticate('discord'),
+    (request, response) => {
+        response.sendStatus(200);
+    })
 
 
 
@@ -80,6 +83,10 @@ app.listen(PORT, () => {
     console.log(`Running on Port ${PORT}`);
 })
 
+app.use(loggingMiddleware, (request, response, next) => {
+    console.log('finished Logging');
+    next();
+});
 
 app.get('/',
     (request, response) => {
@@ -108,15 +115,15 @@ app.get('/api/auth/status', (request, response) => {
 })
 
 
-app.post('/api/cart', (request, response)=>{
-    if(!request.session.user) return response.sendStatus(401);
-    const {body : item} = request;
-    
-    const {cart} = request.session;
+app.post('/api/cart', (request, response) => {
+    if (!request.session.user) return response.sendStatus(401);
+    const { body: item } = request;
 
-    if(cart){
+    const { cart } = request.session;
+
+    if (cart) {
         cart.push(item)
-    }else{
+    } else {
         request.session.cart = [item];
     }
 
@@ -125,7 +132,12 @@ app.post('/api/cart', (request, response)=>{
 })
 
 
-app.get('/api/cart', (request, response)=>{
-    if(!request.session.user) return response.sendStatus(401);
+app.get('/api/cart', (request, response) => {
+    if (!request.session.user) return response.sendStatus(401);
     return response.send(request.session.cart ?? []);
 })
+
+
+
+
+
