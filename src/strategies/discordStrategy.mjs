@@ -2,6 +2,23 @@ import passport from 'passport';
 import { Strategy as DiscordStrategy } from 'passport-discord';
 import { DiscordUser } from '../mongoose/schema/discord-user.mjs';
 
+
+passport.serializeUser((user, done) => {
+    console.log(`Inside Serialize User`)
+    console.log(user)
+    done(null, user.id);
+})
+
+passport.deserializeUser(async (id, done) => {
+    try {
+        const findUser = await DiscordUser.findById(id);
+        return findUser ? done(null, findUser) : done(null, null);
+    } catch (error) {
+        done(error, null)
+        console.log(error)
+    }
+})
+
 passport.use(
     new DiscordStrategy({
         clientID: '1233317385339932752',
